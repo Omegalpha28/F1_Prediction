@@ -1,4 +1,3 @@
-# api.py
 import pandas as pd
 from main import load_data
 from prediction import F1Predictor
@@ -192,7 +191,7 @@ class F1API:
     def get_status_by_id(self, status_id):
         return self.get_table_by("status", statusId=status_id)
 
-    # --- LOGIQUE ML ---
+    # --- LOGIC ML ---
     def setup_prediction_model(self):
         results_df = self.data.get("results", pd.DataFrame())
         self.predictor.train(results_df)

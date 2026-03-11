@@ -1,4 +1,3 @@
-# front.py
 from api import F1API
 
 def run_dashboard():
