@@ -57,4 +57,93 @@ Create a realistic F1 race prediction model with Python.
 ## Note
 To ensure the project uses environment Python and packages (instead of system ones), activate the venv or run with `./.venv/bin/python`.
 
+## API Getter methods (for devs)
+
+In the file `api.py`, the class named `F1API` use some getters to access at the database in `stats/*` :
+
+- Globals Methods
+  - `get_table(table_name)`
+  - `get_table_by(table_name, **filters)`
+
+- Drivers
+  - `get_all_drivers()`
+  - `get_driver_info(driver_ref)`
+  - `get_driver_by_id(driver_id)`
+  - `get_driver_by_ref(driver_ref)`
+  - `get_drivers_by_nationality(nationality)`
+  - `get_drivers_by_name(forename=None, surname=None)`
+
+- Circuits
+  - `get_all_circuits()`
+  - `get_circuit_by_id(circuit_id)`
+  - `get_circuit_by_ref(circuit_ref)`
+  - `get_circuits_by_country(country)`
+
+- Constructors
+  - `get_all_constructor_results()`
+  - `get_all_constructor_standings()`
+  - `get_constructor_by_id(constructor_id)`
+  - `get_constructor_by_ref(constructor_ref)`
+  - `get_constructors_by_nationality(nationality)`
+
+- Races
+  - `get_all_races()`
+  - `get_race_by_id(race_id)`
+  - `get_races_by_year(year)`
+  - `get_races_by_circuit(circuit_id)`
+  - `get_races_by_name(name)`
+
+- Results
+  - `get_all_results()`
+  - `get_result_by_id(result_id)`
+  - `get_results_by_race(race_id)`
+  - `get_results_by_driver(driver_id)`
+  - `get_results_by_constructor(constructor_id)`
+  - `get_results_by_status(status_id)`
+
+- Sprint Results
+  - `get_all_sprint_results()`
+  - `get_sprint_results_by_race(race_id)`
+  - `get_sprint_results_by_driver(driver_id)`
+
+- Constructor Results
+  - `get_constructor_results_by_race(race_id)`
+  - `get_constructor_results_by_constructor(constructor_id)`
+
+- Standings
+  - `get_all_driver_standings()`
+  - `get_driver_standings_by_race(race_id)`
+  - `get_driver_standings_by_driver(driver_id)`
+  - `get_all_constructor_standings()`
+  - `get_constructor_standings_by_race(race_id)`
+  - `get_constructor_standings_by_constructor(constructor_id)`
+
+- Lap/Pit/Qualifying
+  - `get_all_lap_times()`
+  - `get_lap_times_by_race(race_id)`
+  - `get_lap_times_by_driver(driver_id)`
+  - `get_all_pit_stops()`
+  - `get_pit_stops_by_race(race_id)`
+  - `get_pit_stops_by_driver(driver_id)`
+  - `get_all_qualifying()`
+  - `get_qualifying_by_race(race_id)`
+  - `get_qualifying_by_driver(driver_id)`
+  - `get_qualifying_by_constructor(constructor_id)`
+
+- Seasons/Status
+  - `get_all_seasons()`
+  - `get_season_by_year(year)`
+  - `get_all_status()`
+  - `get_status_by_id(status_id)`
+
+
+### Example
+```python
+from api import F1API
+api = F1API()
+drivers = api.get_all_drivers()
+hamilton = api.get_driver_by_ref('hamilton')
+results_2019 = api.get_results_by_race(1)
+```
+
 
