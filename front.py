@@ -1,5 +1,5 @@
 import warnings
-from API import F1API
+from api import F1API
 from prediction import F1Predictor
 import pandas as pd
 import numpy as np

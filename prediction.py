@@ -4,7 +4,7 @@ from models.Strategy import StrategyModel
 from models.Pilots import PilotModel
 from models.WeathersConditions import WeatherModel
 from models.Constructor import ConstructorModel
-from API import F1API
+from api import F1API
 import pandas as pd
 import numpy as np
 

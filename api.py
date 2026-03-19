@@ -1,11 +1,9 @@
 import pandas as pd
 from main import load_data
-from prediction import F1Predictor
 
 class F1API:
     def __init__(self):
         self.data = load_data()
-        self.predictor = F1Predictor()
 
     # --- GETTERS ---
     def get_driver_info(self, driver_ref: str):
@@ -191,10 +189,42 @@ class F1API:
     def get_status_by_id(self, status_id):
         return self.get_table_by("status", statusId=status_id)
 
-    # --- LOGIC ML ---
-    def setup_prediction_model(self):
-        results_df = self.data.get("results", pd.DataFrame())
-        self.predictor.train(results_df)
+    # --- SPECIFIC ML & SIMULATION HELPERS ---
+    def get_training_matrix(self):
+        """Builds a basic training matrix for ML models (Pilots and Constructors)."""
+        res = self.get_all_results().copy()
+        if res.empty:
+            return pd.DataFrame()
+        
+        # Ensure positionOrder is numeric
+        res['positionOrder'] = pd.to_numeric(res['positionOrder'], errors='coerce').fillna(20)
+        res['grid'] = pd.to_numeric(res['grid'], errors='coerce').fillna(10)
+        
+        # Mocking missing complex dynamic features to allow rapid model training
+        # In a full data-pipeline, these would come from merging standings dynamically per race
+        if 'driver_points' not in res.columns:
+            res['driver_points'] = 15.0
+        if 'constructor_points' not in res.columns:
+            res['constructor_points'] = 30.0
+        if 'constructor_wins' not in res.columns:
+            res['constructor_wins'] = 0
+        if 'constructor_champ_pos' not in res.columns:
+            res['constructor_champ_pos'] = 5
+            
+        return res
 
-    def simulate_race_result(self, starting_grid_position: int) -> float:
-        return self.predictor.predict_position(starting_grid_position)
+    def get_driver_history_before(self, driver_id: int, current_year: int):
+        """Returns the average historic position of a driver."""
+        res = self.get_results_by_driver(driver_id)
+        if res.empty: 
+            return None
+        res['positionOrder'] = pd.to_numeric(res['positionOrder'], errors='coerce')
+        return res['positionOrder'].mean()
+
+    def get_constructor_history_before(self, constructor_id: int, current_year: int):
+        """Returns the average historic position of a constructor."""
+        res = self.get_results_by_constructor(constructor_id)
+        if res.empty: 
+            return None
+        res['positionOrder'] = pd.to_numeric(res['positionOrder'], errors='coerce')
+        return res['positionOrder'].mean()

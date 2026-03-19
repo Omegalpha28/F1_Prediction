@@ -1,7 +1,6 @@
 # main.py
 import os
 import pandas as pd
-import front
 
 def load_data() -> dict:
     base_dir = os.path.dirname(__file__)
@@ -34,4 +33,6 @@ def load_data() -> dict:
 if __name__ == "__main__":
     dfs = load_data()
     print("Database loaded with success. Keys available:", list(dfs.keys()))
-    front.run_dashboard()
+    import front
+    # front.run_dashboard() is broken anyway because front.py has run_f1_explorer(), but let's keep it functionally equivalent
+    front.run_f1_explorer()
