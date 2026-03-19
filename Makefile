@@ -1,4 +1,4 @@
-.PHONY: all venv install run build test clean fclean re
+.PHONY: all venv install run dashboard build test clean fclean re
 
 VENV_DIR := .venv
 PYTHON_REQUIRED := 3.13
@@ -7,9 +7,11 @@ PYTHON3 := $(shell command -v python3 2>/dev/null || true)
 SYSTEM_PYTHON := $(or $(PYTHON3_13),$(PYTHON3))
 VENV_PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
+STREAMLIT := $(VENV_DIR)/bin/streamlit
 
 REQUIREMENTS := requirement.txt
 SCRIPT := main.py
+DASHBOARD := dashboard.py
 EXECUTABLE := F1_Detector
 
 all: install build
@@ -26,6 +28,9 @@ install: venv
 
 run:
 	@$(VENV_PYTHON) $(SCRIPT)
+
+dashboard:
+	@$(STREAMLIT) run $(DASHBOARD)
 
 build: $(SCRIPT)
 	@echo "#!$(VENV_PYTHON)" > $(EXECUTABLE)
