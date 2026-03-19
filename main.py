@@ -6,6 +6,7 @@ def load_data() -> dict:
     base_dir = os.path.dirname(__file__)
     files_map = {
         "circuits": "circuits.csv",
+        "constructors": "constructors.csv",
         "constructor_results": "constructor_results.csv",
         "constructor_standings": "constructor_standings.csv",
         "driver_standings": "driver_standings.csv",

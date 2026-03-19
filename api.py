@@ -18,6 +18,9 @@ class F1API:
     def get_all_circuits(self):
         return self.data.get("circuits", pd.DataFrame())
 
+    def get_all_constructors(self):
+        return self.data.get("constructors", pd.DataFrame())
+
     def get_all_constructor_results(self):
         return self.data.get("constructor_results", pd.DataFrame())
 

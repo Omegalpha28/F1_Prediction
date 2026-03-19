@@ -23,51 +23,54 @@ def main():
 
     # == SIDEBAR ==
     st.sidebar.header("Paramètres de la Course")
-    
+
+    # Construire la liste des courses avec résultats disponibles
+    races = api.get_all_races()
+    results_all = api.get_all_results()
+    circuits = api.get_all_circuits()
+
+    race_ids_with_results = results_all['raceId'].unique()
+    available_races = races[races['raceId'].isin(race_ids_with_results)].copy()
+    available_races = pd.merge(available_races, circuits[['circuitId', 'name', 'country']], on='circuitId', how='left', suffixes=('', '_circuit'))
+
     # 1. Année
-    year = st.sidebar.number_input("📅 Année", min_value=1950, max_value=2024, value=2024, step=1)
-    
-    # 2. Circuit
-    circuit_query = st.sidebar.text_input("📍 Nom du circuit ou de ville", value="Monza")
-    
+    available_years = sorted(available_races['year'].unique(), reverse=True)
+    year = st.sidebar.selectbox("📅 Année", available_years, index=0)
+
+    # 2. Course (filtrée par année)
+    races_for_year = available_races[available_races['year'] == year].sort_values('round')
+    race_labels = {
+        row['raceId']: f"R{row['round']} — {row['name']} ({row['name_circuit']}, {row['country']})"
+        for _, row in races_for_year.iterrows()
+    }
+
+    if races_for_year.empty:
+        st.sidebar.warning("Aucune course avec résultats pour cette année.")
+        return
+
+    selected_race_id = st.sidebar.selectbox(
+        "🏁 Grand Prix",
+        options=list(race_labels.keys()),
+        format_func=lambda x: race_labels[x]
+    )
+
     # Météo (Dynamique)
     st.sidebar.markdown("---")
     st.sidebar.subheader("🌥️ Influence de la Météo")
     air_temp = st.sidebar.slider("🌡️ Temp. Air (°C)", 10.0, 45.0, 25.0, 0.5)
     track_temp = st.sidebar.slider("🏎️ Temp. Piste (°C)", 15.0, 60.0, 32.0, 0.5)
     rain_prob = st.sidebar.slider("🌧️ Risque Pluie (%)", 0, 100, 0, 5) / 100.0
-    
+
     weather_sim = {"air_temp": air_temp, "track_temp": track_temp, "rain_prob": rain_prob}
 
     # == MAIN CONTENT ==
-    if not circuit_query:
-        st.info("👈 Veuillez entrer un circuit dans le panneau latéral pour commencer.")
-        return
-
-    circuits = api.get_all_circuits()
-    found_circuit = circuits[
-        circuits['name'].str.contains(circuit_query, case=False, na=False) | 
-        circuits['location'].str.contains(circuit_query, case=False, na=False)
-    ]
-
-    if found_circuit.empty:
-        st.error(f"❌ Aucun circuit trouvé pour : '{circuit_query}'")
-        return
-
-    circuit_id = found_circuit.iloc[0]['circuitId']
-    circuit_name = found_circuit.iloc[0]['name']
-    country = found_circuit.iloc[0]['country']
-
-    races = api.get_all_races()
-    race_info = races[(races['year'] == year) & (races['circuitId'] == circuit_id)]
-
-    if race_info.empty:
-        st.warning(f"❌ Pas de Grand Prix trouvé en {year} sur le circuit : {circuit_name}")
-        return
-
-    race_id = race_info.iloc[0]['raceId']
-    race_date = race_info.iloc[0]['date']
-    race_name = race_info.iloc[0]['name']
+    selected_race = races_for_year[races_for_year['raceId'] == selected_race_id].iloc[0]
+    race_id = selected_race['raceId']
+    race_date = selected_race['date']
+    race_name = selected_race['name']
+    circuit_id = selected_race['circuitId']
+    circuit_name = selected_race['name_circuit']
+    country = selected_race['country']
 
     st.success(f"**GP :** {race_name} &nbsp;|&nbsp; **Date :** {race_date} &nbsp;|&nbsp; **Lieu :** {circuit_name}, {country}")
     
