@@ -1,49 +1,12 @@
 import logging
-
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-
 from .Ml_Predictions import Ml_Prediction
 
 logger = logging.getLogger(__name__)
 
-
 class StrategyModel(Ml_Prediction):
-    """
-    Modèle de prédiction de la stratégie de pit stop optimale en F1.
-
-    Prédit le tour optimal pour effectuer un pit stop, par pilote et par course,
-    en s'appuyant sur l'historique des arrêts et les caractéristiques de la course.
-
-    Features utilisées :
-      - stop              : numéro de l'arrêt (1er, 2ème, 3ème...)
-      - grid              : position de départ (influence le moment du sous-cut/over-cut)
-      - avg_pit_duration  : durée moyenne des pit stops du pilote (proxy fiabilité)
-      - circuit_dnf_rate  : taux de DNF du circuit (influe sur la prudence stratégique)
-      - constructor_reliability : fiabilité du constructeur (0-1)
-      - round             : numéro de manche (fatigue pneus selon saison/règlement)
-
-    Pourquoi ces features plutôt que ['raceId', 'stop'] ?
-      - 'raceId' est un identifiant arbitraire, pas une feature métier.
-        Le modèle ne peut pas généraliser sur un raceId inconnu.
-      - 'stop' seul prédit juste que le 1er arrêt est tôt et le 2ème tard,
-        ce qui est trivial et inutile.
-
-    Usage type (orchestrateur) :
-        strategy_model = StrategyModel()
-        strategy_model.train(api, circuit_model)
-        lap = strategy_model.predict({
-            'stop': 1,
-            'grid': 5,
-            'avg_pit_duration': 23.5,
-            'circuit_dnf_rate': 0.12,
-            'constructor_reliability': 0.90,
-            'round': 8,
-        })
-        # → 28  (tour optimal pour le 1er pit stop)
-    """
-
     def __init__(self):
         super().__init__()
         self.model = RandomForestRegressor(
@@ -52,70 +15,45 @@ class StrategyModel(Ml_Prediction):
             random_state=42,
         )
         self.features = [
-            "stop",
-            "grid",
-            "avg_pit_duration",
-            "circuit_dnf_rate",
-            "constructor_reliability",
-            "round",
+            "stop", "grid", "avg_pit_duration",
+            "circuit_dnf_rate", "constructor_reliability", "round",
         ]
 
-    # ------------------------------------------------------------------
-    # Train
-    # ------------------------------------------------------------------
-
-    def train(self, api, circuit_model=None) -> None:
-        """
-        Entraîne le modèle sur l'historique des pit stops enrichi.
-
-        Étapes :
-          1. Récupère pit_stops, results, races depuis F1API
-          2. Calcule avg_pit_duration par pilote
-          3. Enrichit avec circuit_dnf_rate depuis CircuitModel si disponible
-          4. Fusionne constructor_reliability depuis results
-          5. Entraîne RandomForest sur le tour réel du pit stop (target = lap)
-        """
+    def _load_raw_data(self, api) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         df_pit = api.get_all_pit_stops()
         df_results = api.get_all_results()
         df_races = api.get_all_races()
-
         if df_pit.empty:
             raise ValueError("[StrategyModel] df_pit_stops vide — vérifier F1API.")
+        return df_pit.copy(), df_results, df_races
 
-        df_pit = df_pit.copy()
-        df_pit["lap"] = pd.to_numeric(df_pit["lap"], errors="coerce")
-        df_pit["stop"] = pd.to_numeric(df_pit["stop"], errors="coerce")
-        df_pit["milliseconds"] = pd.to_numeric(df_pit["milliseconds"], errors="coerce")
+    def _cast_numeric_columns(self, df_pit: pd.DataFrame) -> pd.DataFrame:
+        for col in ["lap", "stop", "milliseconds"]:
+            df_pit[col] = pd.to_numeric(df_pit[col], errors="coerce")
+        return df_pit
 
-        # -- avg_pit_duration par pilote --
+    def _add_avg_pit_duration(self, df_pit: pd.DataFrame) -> pd.DataFrame:
         avg_duration = (
             df_pit.groupby("driverId")["milliseconds"]
             .mean()
-            .div(1000)  # ms → secondes
-            .reset_index()
-            .rename(columns={"milliseconds": "avg_pit_duration"})
+            .div(1000)
+            .rename("avg_pit_duration")
         )
-        df_pit = df_pit.merge(avg_duration, on="driverId", how="left")
+        return df_pit.merge(avg_duration, on="driverId", how="left")
 
-        # -- Fusion avec races pour récupérer round et circuitId --
-        df_pit = df_pit.merge(
+    def _merge_race_metadata(self, df_pit: pd.DataFrame, df_races: pd.DataFrame) -> pd.DataFrame:
+        return df_pit.merge(
             df_races[["raceId", "round", "circuitId", "year"]],
             on="raceId",
             how="left",
         )
 
-        # -- circuit_dnf_rate depuis CircuitModel --
-        df_pit = self._enrich_circuit_dnf_rate(df_pit, circuit_model)
-
-        # -- constructor_reliability depuis results --
-        df_pit = self._enrich_constructor_reliability(df_pit, df_results)
-
-        # -- grid depuis results --
+    def _merge_grid_position(self, df_pit: pd.DataFrame, df_results: pd.DataFrame) -> pd.DataFrame:
         df_grid = df_results[["raceId", "driverId", "grid"]].copy()
         df_grid["grid"] = pd.to_numeric(df_grid["grid"], errors="coerce")
-        df_pit = df_pit.merge(df_grid, on=["raceId", "driverId"], how="left")
+        return df_pit.merge(df_grid, on=["raceId", "driverId"], how="left")
 
-        # -- Imputation finale --
+    def _fill_missing_values(self, df_pit: pd.DataFrame) -> pd.DataFrame:
         df_pit["avg_pit_duration"] = df_pit["avg_pit_duration"].fillna(
             df_pit["avg_pit_duration"].median()
         )
@@ -123,31 +61,22 @@ class StrategyModel(Ml_Prediction):
         df_pit["constructor_reliability"] = df_pit["constructor_reliability"].fillna(0.85)
         df_pit["grid"] = df_pit["grid"].fillna(10)
         df_pit["round"] = df_pit["round"].fillna(1)
+        return df_pit.dropna(subset=["lap"])
 
-        # -- Drop lignes sans target --
-        df_pit = df_pit.dropna(subset=["lap"])
-
+    def _fit_model(self, df_pit: pd.DataFrame) -> None:
         X = self.preprocess_features(df_pit, self.features)
         y = df_pit["lap"].values
-
         self.scaler.fit(X)
         X_scaled = self.scaler.transform(X)
         self.model.fit(X_scaled, y)
         self.is_trained = True
-
         logger.info(
-            f"[StrategyModel] Entraîné sur {len(X)} pit stops — "
-            f"features : {self.features}"
+            f"[StrategyModel] Entraîné sur {len(X)} pit stops — features : {self.features}"
         )
-
-    # ------------------------------------------------------------------
-    # Enrichissement features
-    # ------------------------------------------------------------------
 
     def _enrich_circuit_dnf_rate(
         self, df: pd.DataFrame, circuit_model
     ) -> pd.DataFrame:
-        """Ajoute circuit_dnf_rate depuis CircuitModel ou valeur par défaut."""
         if circuit_model is not None and circuit_model.is_trained:
             circuit_dnf = {}
             for cid in df["circuitId"].unique():
@@ -160,13 +89,11 @@ class StrategyModel(Ml_Prediction):
                 "[StrategyModel] CircuitModel absent — circuit_dnf_rate par défaut : 0.15"
             )
             df["circuit_dnf_rate"] = 0.15
-
         return df
 
     def _enrich_constructor_reliability(
         self, df: pd.DataFrame, df_results: pd.DataFrame
     ) -> pd.DataFrame:
-        """Calcule et fusionne constructor_reliability depuis results."""
         if df_results.empty or "constructorId" not in df_results.columns:
             df["constructor_reliability"] = 0.85
             return df
@@ -199,32 +126,25 @@ class StrategyModel(Ml_Prediction):
         )
         return df
 
-    # ------------------------------------------------------------------
-    # Predict
-    # ------------------------------------------------------------------
+    def train(self, api, circuit_model=None) -> None:
+        df_pit, df_results, df_races = self._load_raw_data(api)
+        df_pit = self._cast_numeric_columns(df_pit)
+        df_pit = self._add_avg_pit_duration(df_pit)
+        df_pit = self._merge_race_metadata(df_pit, df_races)
+        df_pit = self._enrich_circuit_dnf_rate(df_pit, circuit_model)
+        df_pit = self._enrich_constructor_reliability(df_pit, df_results)
+        df_pit = self._merge_grid_position(df_pit, df_results)
+        df_pit = self._fill_missing_values(df_pit)
+        self._fit_model(df_pit)
 
     def predict(self, strategy_data: dict) -> int:
-        """
-        Prédit le tour optimal pour un pit stop donné.
-
-        Args:
-            strategy_data: dict avec les clés de self.features.
-
-        Returns:
-            int : tour prédit pour le pit stop (clippé entre 1 et 70)
-        """
         if not self.is_trained:
             raise RuntimeError(
                 "[StrategyModel] Le modèle n'est pas entraîné. Appeler train() d'abord."
             )
-
         defaults = {
-            "stop": 1,
-            "grid": 10,
-            "avg_pit_duration": 25.0,
-            "circuit_dnf_rate": 0.15,
-            "constructor_reliability": 0.85,
-            "round": 1,
+            "stop": 1, "grid": 10, "avg_pit_duration": 25.0, "circuit_dnf_rate": 0.15,
+            "constructor_reliability": 0.85, "round": 1,
         }
         for key, val in defaults.items():
             if key not in strategy_data:
@@ -232,7 +152,6 @@ class StrategyModel(Ml_Prediction):
                     f"[StrategyModel] Feature '{key}' absente — valeur par défaut : {val}"
                 )
                 strategy_data[key] = val
-
         df_input = pd.DataFrame([strategy_data])
         X = self.preprocess_features(df_input, self.features)
         X_scaled = self.scaler.transform(X)
