@@ -2,6 +2,8 @@
 __pycache__/
 *.py[codz]
 *$py.class
+./F1_Dashboard
+F1_Dashboard
 
 # C extensions
 *.so
