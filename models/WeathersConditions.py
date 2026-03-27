@@ -38,10 +38,10 @@ class WeatherModel(Ml_Prediction):
         air_temp = weather_data.get("air_temp", 25.0)
         track_temp = weather_data.get("track_temp", 35.0)
         rain_prob = weather_data.get("rain_prob", 0.0)
-        rain_penalty = rain_prob * 0.30
+        rain_penalty = rain_prob * 0.50
         temp_diff = abs(track_temp - 35.0)
-        grip_penalty = min(temp_diff / 40.0, 1.0) * 0.15
+        grip_penalty = min(temp_diff / 30.0, 1.0) * 0.25
         delta_t = track_temp - air_temp
-        delta_penalty = (1.0 - (1.0 / (1.0 + np.exp(-0.5 * (delta_t - 5.0))))) * 0.10
+        delta_penalty = (1.0 - (1.0 / (1.0 + np.exp(-0.5 * (delta_t - 5.0))))) * 0.15
         weather_factor = 1.0 - rain_penalty - grip_penalty - delta_penalty
-        return float(np.clip(weather_factor, 0.5, 1.0))
+        return float(np.clip(weather_factor, 0.2, 1.0))

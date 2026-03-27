@@ -12,7 +12,7 @@ class PilotModel(Ml_Prediction):
 
     def __init__(self):
         super().__init__()
-        self.model = RandomForestRegressor(n_estimators=300, max_depth=8, random_state=42)
+        self.model = RandomForestRegressor(n_estimators=500, max_depth=8, random_state=42)
         self.features = [
             "grid",
             "rolling_avg_position",

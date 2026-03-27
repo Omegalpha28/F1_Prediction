@@ -10,7 +10,7 @@ class ConstructorModel(Ml_Prediction):
 
     def __init__(self):
         super().__init__()
-        self.model = RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42)
+        self.model = RandomForestRegressor(n_estimators=500, max_depth=8, random_state=42)
         self.features = [
             "constructor_points", "constructor_wins", "constructor_champ_pos",
             "reliability_score", "rolling_avg_points", "development_trend", "circuit_cluster"
