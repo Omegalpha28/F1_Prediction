@@ -11,8 +11,7 @@ STREAMLIT := $(VENV_DIR)/bin/streamlit
 
 REQUIREMENTS := requirement.txt
 SCRIPT := main.py
-DASHBOARD := dashboard.py
-EXECUTABLE := F1_Detector
+EXECUTABLE := F1_Dashboard
 
 all: install build
 
@@ -29,8 +28,6 @@ install: venv
 run:
 	@$(VENV_PYTHON) $(SCRIPT)
 
-dashboard:
-	@$(STREAMLIT) run $(DASHBOARD)
 
 build: $(SCRIPT)
 	@echo "#!$(VENV_PYTHON)" > $(EXECUTABLE)
