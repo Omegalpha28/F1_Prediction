@@ -149,11 +149,9 @@ def build_health_report(dataframes: dict, status: TableStatus) -> HealthReport:
 
 def _print_report_section(state: str, entries: list, icon: str) -> None:
     if not entries: return
-    print(f"\n[{icon}] {state.upper()} ({len(entries)})")
     for key, info in entries:
         bloc   = " [BLOQUANTE]" if info["bloquante"] else ""
         lignes = f"{info['lignes']} lignes" if info["lignes"] is not None else "—"
-        print(f"   {key}{bloc}  —  {lignes}")
         if info["colonnes_absentes"]:
             print(f"      Colonnes absentes : {', '.join(info['colonnes_absentes'])}")
         if info["nan_critiques"]:
