@@ -248,15 +248,22 @@ class F1Predictor:
         return round(float(finished / len(results)), 3)
 
     def _get_weather_factor(self, weather_conditions: dict, circuit_id: int, year: int) -> float:
-        rain_prob = weather_conditions.get("rain_prob", 0.0)
+        """
+        Fait le lien entre les curseurs du Dashboard et le modèle physique.
+        """
         if not self.weather_model.is_trained:
+            # Fallback si le modèle n'est pas prêt
+            rain_prob = weather_conditions.get("rain_prob", 0.0)
             return float(np.clip(1.0 - rain_prob * 0.4, 0.6, 1.0))
+
+        # Préparation du dictionnaire avec les EXACTES clés attendues par WeatherModel.predict
         weather_input = {
-            "month": self._extract_race_month(year),
-            "rain_probability": float(np.clip(rain_prob, 0.0, 0.90)),
-            "dnf_rate_delta": 0.0,
-            "round": self._get_round(circuit_id, year),
+            "air_temp": float(weather_conditions.get("air_temp", 25.0)),
+            "track_temp": float(weather_conditions.get("track_temp", 35.0)),
+            "rain_prob": float(weather_conditions.get("rain_prob", 0.0))
         }
+        
+        # Appel du calcul physique (Sigmoïde, Valeur absolue, etc.)
         return self.weather_model.predict(weather_input)
 
     def _extract_race_month(self, year: int) -> int:
