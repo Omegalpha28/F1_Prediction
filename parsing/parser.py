@@ -159,14 +159,12 @@ def _print_report_section(state: str, entries: list, icon: str) -> None:
             print(f"      NaN critiques     : {details}")
 
 def print_health_report(report: HealthReport) -> None:
-    print("\n" + "═" * 60 + "\n  RAPPORT DE SANTÉ — DONNÉES F1\n" + "═" * 60)
     icons   = {"ok": "✓", "suspect": "⚠", "vide": "○", "absent": "✗"}
     grouped = {"ok": [], "suspect": [], "vide": [], "absent": []}
     for key, info in report.items():
         grouped[info["etat"]].append((key, info))
     for state in ["ok", "suspect", "vide", "absent"]:
         _print_report_section(state, grouped[state], icons[state])
-    print("\n" + "═" * 60 + "\n")
 
 def _check_blocking_tables(status: TableStatus) -> None:
     for key in BLOCKING_TABLES:
