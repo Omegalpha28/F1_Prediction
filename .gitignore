@@ -5,6 +5,9 @@ __pycache__/
 ./F1_Dashboard
 F1_Dashboard
 
+#csv files
+*.csv
+
 # C extensions
 *.so
 
