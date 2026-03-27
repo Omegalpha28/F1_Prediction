@@ -64,10 +64,3 @@ The following diagram illustrates how user inputs are transformed into the final
 | **DNF Filtering** | `load_to_display: compute_dnf_ids` | Identifies drivers who crashed or had mechanical failures based on historical status codes. |
 | **Team Column Mapping** | `load_to_display: get_team_col` | Handles dataset variations in team naming (e.g., `name_con` vs `name`) automatically. |
 | **ML Brut Score** | `display: build_display_rows` | Displays the raw floating-point value from the regressor (e.g., P4.2) before it is discretized into a rank. |
-
----
-
-### How to Run
-To launch the dashboard locally, use the following command in your terminal:
-```bash
-streamlit run display.py
