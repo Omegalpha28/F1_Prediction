@@ -32,7 +32,7 @@ This single command will:
 
 - Create a local virtual environment (`.venv`)
 - Install all required dependencies
-- Generate a standalone executable named `F1_Deashboard`
+- Generate a standalone executable named `F1_Dashboard`
 
 ---
 
