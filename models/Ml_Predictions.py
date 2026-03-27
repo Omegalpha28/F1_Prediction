@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-
 import joblib
 import numpy as np
 import pandas as pd
